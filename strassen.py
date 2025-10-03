@@ -98,5 +98,5 @@ def padMatrix(A, n):
             padded[i][j] = A[i][j]
     return padded
 
-def unpadMatrix(C, orig_n):
-    return [row[:orig_n] for row in C[:orig_n]]
+def unpadMatrix(C, initialDimension):
+    return [row[:initialDimension] for row in C[:initialDimension]]
