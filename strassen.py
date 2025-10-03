@@ -12,13 +12,13 @@ def mult(A,B):
     if len(A) != len(B):
         raise ValueError("Matrices must be the same size")
     
-    ## check if n is a power of 2
+    Apad, Bpad = A, B
     if nextPowerOfTwo(len(A)) != len(A):
-        A = padMatrix(A, len(A))
-        B = padMatrix(B, len(B))
+        Apad = padMatrix(A, len(A))
+        Bpad = padMatrix(B, len(B))
     
-    C = strassenMultiplication(A, B)
-    return unpadMatrix(C, initialDimension)
+    Cpad = strassenMultiplication(Apad, Bpad)
+    return unpadMatrix(Cpad, initialDimension)
 
 def strassenMultiplication(A, B):
         ## base case: 1x1 matrix
