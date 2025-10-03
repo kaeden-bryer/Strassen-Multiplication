@@ -2,38 +2,112 @@ import util
 import math
 
 def mult(A,B):
-    isAValid = util.validDim(A, len(A));
-    isBValid = util.validDim(B, len(B));
+    isAValid = util.validDim(A, len(A))
+    isBValid = util.validDim(B, len(B))
     if not (isAValid and isBValid):
         raise ValueError("Invalid matrix dimensions")
     
-    paddedA = padMatrix(A, len(A))
-    paddedB = padMatrix(B, len(B))
-    
+    initialDimension = len(A)
+    ## test 0x0 edge case
+    if initialDimension == 0:
+        return []
 
+    if len(A) != len(B):
+        raise ValueError("Matrices must be the same size")
+    
+    ## check if n is a power of 2
+    if 2**math.ceil(math.log2(len(A))) != len(A):
+        ## pad matrices to next power of 2
+        A = padMatrix(A, len(A))
+        B = padMatrix(B, len(B))
+    
+    ## perform strassen's algorithm
+    C = strassenMultiplication(A, B)
+    ## unpad to original dimension
+    return unpadMatrix(C, initialDimension)
+
+def strassenMultiplication(A, B):
+        if len(A) == 1:
+            ## 1x1 matrix, just return value
+            return [[A[0][0] * B[0][0]]]
+        ## recursive case:
+        else:
+            ## perform strassen's algorithm
+            mid = len(A)//2
+            a = [row[:mid] for row in A[:mid]]
+            b = [row[mid:] for row in A[:mid]]
+            c = [row[:mid] for row in A[mid:]]
+            d = [row[mid:] for row in A[mid:]]
+
+            e = [row[:mid] for row in B[:mid]]
+            f = [row[mid:] for row in B[:mid]]
+            g = [row[:mid] for row in B[mid:]]
+            h = [row[mid:] for row in B[mid:]]
+
+            p1 = strassenMultiplication(a, subtractMatrices(f, h))
+            p2 = strassenMultiplication(addMatrices(a, b),h)
+            p3 = strassenMultiplication(addMatrices(c, d), e)
+            p4 = strassenMultiplication(d, subtractMatrices(g, e))
+            p5 = strassenMultiplication(addMatrices(a, d),addMatrices(e, h))
+            p6 = strassenMultiplication(subtractMatrices(b, d),addMatrices(g, h))
+            p7 = strassenMultiplication(subtractMatrices(a, c),addMatrices(e, f))
+
+            r = addMatrices(subtractMatrices(addMatrices(p5, p4), p2), p6)
+            s = addMatrices(p1, p2)
+            t = addMatrices(p3, p4)
+            u = subtractMatrices(subtractMatrices(addMatrices(p1, p5), p3), p7)
+
+            ## combine arrays
+            C = combineArrays(r,s,t,u)
+            return C
+
+def addMatrices(A, B):
+    n = len(A)
+    C = util.newMatrix(n)
+    for i in range(n):
+        for j in range(n):
+            C[i][j] = A[i][j] + B[i][j]
+    return C
+
+def subtractMatrices(A, B):
+    n = len(A)
+    C = util.newMatrix(n)
+    for i in range(n):
+        for j in range(n):
+            C[i][j] = A[i][j] - B[i][j]
+    return C
+
+def combineArrays(r,s,t,u):
+    ## thinking: make array C of size 2n x 2n
+    ## r is Q1, s is Q2, t is Q3, u is Q4
+
+    n = len(r)
+    C = util.newMatrix(2*n)
+
+    for i in range(n):
+        for j in range(n):
+            C[i][j] = r[i][j] ## fill Q1
+            C[i][j+n] = s[i][j] ## fill Q2
+            C[i+n][j] = t[i][j] ## fill Q3
+            C[i+n][j+n] = u[i][j] ## fill Q4
+    
+    return C
 
 def padMatrix(A, n):
     ## thinking: add 0's to rows and columns to make A a 2^n x 2^n matrix
-
     ## take ceiling of log base 2 of n, then 2^ that value
     newSize = 2**math.ceil(math.log2(n))
 
     ## create new matrix of size newSize x newSize
-    padded = util.newMatrix(newSize)
+    padded = util.newMatrix(int(newSize))
 
-    ## copy values from A to padded. Extra rows and columns should already be 0
+    ## copy values from A to padded. Extra rows and columns should already be 0 from util.py
     for i in range(n):
         for j in range(n):
             padded[i][j] = A[i][j]
 
-    ## print testing
-    print(padded)
     return padded
 
-## just use for testing
-if __name__ == "__main__":
-    A = [[1,2,3,4,5],[4,5,6,7,8],[7,8,9,10,11], [10,11,12,13,14],[13,14,15,16,17]]
-    print(len(A))
-    padMatrix(A, len(A))
-
-
+def unpadMatrix(C, orig_n):
+    ## remove padding from matrix C to return to original size
+    return [row[:orig_n] for row in C[:orig_n]]
