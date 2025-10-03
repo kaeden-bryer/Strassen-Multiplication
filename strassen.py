@@ -2,13 +2,10 @@ import util
 import math
 
 def mult(A,B):
-    isAValid = util.validDim(A, len(A))
-    isBValid = util.validDim(B, len(B))
-    if not (isAValid and isBValid):
+    if not util.validDim(A, len(A)) or not util.validDim(B, len(B)):
         raise ValueError("Invalid matrix dimensions")
     
     initialDimension = len(A)
-    ## test 0x0 edge case
     if initialDimension == 0:
         return []
 
@@ -16,33 +13,21 @@ def mult(A,B):
         raise ValueError("Matrices must be the same size")
     
     ## check if n is a power of 2
-    if 2**math.ceil(math.log2(len(A))) != len(A):
-        ## pad matrices to next power of 2
+    if nextPowerOfTwo(len(A)) != len(A):
         A = padMatrix(A, len(A))
         B = padMatrix(B, len(B))
     
-    ## perform strassen's algorithm
     C = strassenMultiplication(A, B)
-    ## unpad to original dimension
     return unpadMatrix(C, initialDimension)
 
 def strassenMultiplication(A, B):
+        ## base case: 1x1 matrix
         if len(A) == 1:
-            ## 1x1 matrix, just return value
             return [[A[0][0] * B[0][0]]]
-        ## recursive case:
+        ## recursive case: strassen's algorithm
         else:
-            ## perform strassen's algorithm
-            mid = len(A)//2
-            a = [row[:mid] for row in A[:mid]]
-            b = [row[mid:] for row in A[:mid]]
-            c = [row[:mid] for row in A[mid:]]
-            d = [row[mid:] for row in A[mid:]]
-
-            e = [row[:mid] for row in B[:mid]]
-            f = [row[mid:] for row in B[:mid]]
-            g = [row[:mid] for row in B[mid:]]
-            h = [row[mid:] for row in B[mid:]]
+            a, b, c, d = splitMatrix(A)
+            e, f, g, h = splitMatrix(B)
 
             p1 = strassenMultiplication(a, subtractMatrices(f, h))
             p2 = strassenMultiplication(addMatrices(a, b),h)
@@ -57,9 +42,23 @@ def strassenMultiplication(A, B):
             t = addMatrices(p3, p4)
             u = subtractMatrices(subtractMatrices(addMatrices(p1, p5), p3), p7)
 
-            ## combine arrays
             C = combineArrays(r,s,t,u)
             return C
+
+def nextPowerOfTwo(n):
+    if n <= 0:
+        return 1
+    ## take ceiling of log base 2 of n, then 2^ that value to find next power of 2
+    return 2**math.ceil(math.log2(n))
+
+def splitMatrix(M):
+    n = len(M)
+    mid = n // 2
+    A11 = [row[:mid] for row in M[:mid]]
+    A12 = [row[mid:] for row in M[:mid]]
+    A21 = [row[:mid] for row in M[mid:]]
+    A22 = [row[mid:] for row in M[mid:]]
+    return A11, A12, A21, A22
 
 def addMatrices(A, B):
     n = len(A)
@@ -80,10 +79,8 @@ def subtractMatrices(A, B):
 def combineArrays(r,s,t,u):
     ## thinking: make array C of size 2n x 2n
     ## r is Q1, s is Q2, t is Q3, u is Q4
-
     n = len(r)
     C = util.newMatrix(2*n)
-
     for i in range(n):
         for j in range(n):
             C[i][j] = r[i][j] ## fill Q1
@@ -94,20 +91,12 @@ def combineArrays(r,s,t,u):
     return C
 
 def padMatrix(A, n):
-    ## thinking: add 0's to rows and columns to make A a 2^n x 2^n matrix
-    ## take ceiling of log base 2 of n, then 2^ that value
-    newSize = 2**math.ceil(math.log2(n))
-
-    ## create new matrix of size newSize x newSize
+    newSize = nextPowerOfTwo(n)
     padded = util.newMatrix(int(newSize))
-
-    ## copy values from A to padded. Extra rows and columns should already be 0 from util.py
     for i in range(n):
         for j in range(n):
             padded[i][j] = A[i][j]
-
     return padded
 
 def unpadMatrix(C, orig_n):
-    ## remove padding from matrix C to return to original size
     return [row[:orig_n] for row in C[:orig_n]]
